@@ -376,19 +376,7 @@ public class InteractiveLineGraphView extends View {
     	
     	return fontSize;
     }
-
-    /**
-     * Rounds the given number to the given number of significant digits. Based on an answer on
-     * <a href="http://stackoverflow.com/questions/202302">Stack Overflow</a>.
-     */
-    private static float roundToOneSignificantFigure(double num) {
-        final float d = (float) Math.ceil((float) Math.log10(num < 0 ? -num : num));
-        final int power = 1 - (int) d;
-        final float magnitude = (float) Math.pow(10, power);
-        final long shifted = Math.round(num * magnitude);
-        return shifted / magnitude;
-    }
-
+    
     private static final int POW10[] = {1, 10, 100, 1000, 10000, 100000, 1000000};
 
     /**
@@ -447,22 +435,12 @@ public class InteractiveLineGraphView extends View {
             return;
         }
 
-        double rawInterval = range / steps;
-        double interval = roundToOneSignificantFigure(rawInterval);
-        double intervalMagnitude = Math.pow(10, (int) Math.log10(interval));
-        int intervalSigDigit = (int) (interval / intervalMagnitude);
-        if (intervalSigDigit > 5) {
-            // Use one order of magnitude higher, to avoid intervals like 0.9 or 90
-            interval = Math.floor(10 * intervalMagnitude);
-        }
-
         double first = Math.ceil(start);
         double last = Math.nextUp(Math.floor(stop));
 
         double f;
-        int i;
         int n = 0;
-        for (f = first; f <= last; f += interval) {
+        for (f = first; f <= last; f++) {
             ++n;
         }
 
@@ -472,16 +450,13 @@ public class InteractiveLineGraphView extends View {
             // Ensure stops contains at least numStops elements.
             outStops.stops = new float[n];
         }
-
+   
+        int i=0;
         for (f=first, i=0; i<n; f++, ++i) {
             outStops.stops[i] = (float) f;
         }
 
-        if (interval < 1) {
-            outStops.decimals = (int) Math.ceil(-Math.log10(interval));
-        } else {
-            outStops.decimals = 0;
-        }
+        outStops.decimals = 0;
     }
 
     /**
