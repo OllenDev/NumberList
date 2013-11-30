@@ -269,10 +269,10 @@ public class InteractiveLineGraphView extends View {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         mContentRect.set(
-                getPaddingLeft(),
+                getPaddingLeft() + mMaxLabelWidth + mLabelSeparation,
                 getPaddingTop(),
                 getWidth() - getPaddingRight(),
-                getHeight() - getPaddingBottom());
+                getHeight() - getPaddingBottom() - mLabelHeight - mLabelSeparation);
     }
 
     @Override

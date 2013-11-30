@@ -269,10 +269,10 @@ public class InteractiveLineGraphView extends View {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         mContentRect.set(
-                getPaddingLeft(),
+                getPaddingLeft() + mMaxLabelWidth + mLabelSeparation,
                 getPaddingTop(),
                 getWidth() - getPaddingRight(),
-                getHeight() - getPaddingBottom());
+                getHeight() - getPaddingBottom() - mLabelHeight - mLabelSeparation);
     }
 
     @Override
@@ -375,21 +375,21 @@ public class InteractiveLineGraphView extends View {
 //        canvas.drawLines(mAxisYLinesBuffer, 0, mYStopsBuffer.numStops * 4, mGridPaint);
 
         // Draws X labels
-//        mLabelTextPaint.setTextAlign(Paint.Align.CENTER);
-//        for (i = 0; i < mXStopsBuffer.numStops; i++) {
-//            // Do not use String.format in high-performance code such as onDraw code.
-//            labelLength = formatFloat(mLabelBuffer, mXStopsBuffer.stops[i], mXStopsBuffer.decimals);
-//            labelOffset = mLabelBuffer.length - labelLength;
-//            canvas.drawText(
-//                    mLabelBuffer, labelOffset, labelLength,
-//                    mAxisXPositionsBuffer[i],
-//                    mContentRect.bottom + mLabelHeight + mLabelSeparation,
-//                    mLabelTextPaint);
-//        }
-
-        // Draws Y labels
         int labelOffset;
         int labelLength;
+        mLabelTextPaint.setTextAlign(Paint.Align.CENTER);
+        for (i = 0; i < mXStopsBuffer.numStops; i++) {
+            // Do not use String.format in high-performance code such as onDraw code.
+            labelLength = formatFloat(mLabelBuffer, mXStopsBuffer.stops[i], mXStopsBuffer.decimals);
+            labelOffset = mLabelBuffer.length - labelLength;
+            canvas.drawText(
+                    mLabelBuffer, labelOffset, labelLength,
+                    mAxisXPositionsBuffer[i],
+                    mContentRect.bottom + mLabelHeight + mLabelSeparation,
+                    mLabelTextPaint);
+        }
+
+        // Draws Y labels
         mLabelTextPaint.setTextAlign(Paint.Align.CENTER);
         for (i = 0; i < mYStopsBuffer.numStops; i++) {
             // Do not use String.format in high-performance code such as onDraw code.
@@ -397,7 +397,7 @@ public class InteractiveLineGraphView extends View {
             labelOffset = mLabelBuffer.length - labelLength;
             canvas.drawText(
                     mLabelBuffer, labelOffset, labelLength,
-                    mContentRect.width() / 2,
+                    mContentRect.left - mLabelSeparation,
                     mAxisYPositionsBuffer[i] + mLabelHeight / 2,
                     mLabelTextPaint);
         }
