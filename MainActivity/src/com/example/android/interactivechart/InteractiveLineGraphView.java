@@ -69,7 +69,7 @@ import android.widget.OverScroller;
  * view's content for vision-impaired users.
  */
 public class InteractiveLineGraphView extends View {
-    private static final String TAG = "InteractiveLineGraphView";
+//    private static final String TAG = "InteractiveLineGraphView";
 
     /**
      * Initial fling velocity for pan operations, in screen widths (or heights) per second.
@@ -135,7 +135,6 @@ public class InteractiveLineGraphView extends View {
     private Paint mDataPaint;
 
     // State objects and values related to gesture tracking.
-    private ScaleGestureDetector mScaleGestureDetector;
     private GestureDetectorCompat mGestureDetector;
     private OverScroller mScroller;
     private Zoomer mZoomer;
@@ -215,11 +214,12 @@ public class InteractiveLineGraphView extends View {
         initPaints();
 
         // Sets up interactions
-        mScaleGestureDetector = new ScaleGestureDetector(context, mScaleGestureListener);
         mGestureDetector = new GestureDetectorCompat(context, mGestureListener);
 
         mScroller = new OverScroller(context);
         mZoomer = new Zoomer(context);
+        
+        mCurrentViewport = new RectF(AXIS_X_MIN, 0f, AXIS_X_MAX, 4f);
 
         // Sets up edge effects
         mEdgeEffectLeft = new EdgeEffectCompat(context);
@@ -499,85 +499,10 @@ public class InteractiveLineGraphView extends View {
     //
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * Finds the chart point (i.e. within the chart's domain and range) represented by the
-     * given pixel coordinates, if that pixel is within the chart region described by
-     * {@link #mContentRect}. If the point is found, the "dest" argument is set to the point and
-     * this function returns true. Otherwise, this function returns false and "dest" is unchanged.
-     */
-    private boolean hitTest(float x, float y, PointF dest) {
-        if (!mContentRect.contains((int) x, (int) y)) {
-            return false;
-        }
-
-        dest.set(
-                mCurrentViewport.left
-                        + mCurrentViewport.width()
-                        * (x - mContentRect.left) / mContentRect.width(),
-                mCurrentViewport.top
-                        + mCurrentViewport.height()
-                        * (y - mContentRect.bottom) / -mContentRect.height());
-        return true;
-     }
-
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        boolean retVal = mScaleGestureDetector.onTouchEvent(event);
-        retVal = mGestureDetector.onTouchEvent(event) || retVal;
-        return retVal || super.onTouchEvent(event);
+        return mGestureDetector.onTouchEvent(event) || super.onTouchEvent(event);
     }
-
-    /**
-     * The scale listener, used for handling multi-finger scale gestures.
-     */
-    private final ScaleGestureDetector.OnScaleGestureListener mScaleGestureListener
-            = new ScaleGestureDetector.SimpleOnScaleGestureListener() {
-        /**
-         * This is the active focal point in terms of the viewport. Could be a local
-         * variable but kept here to minimize per-frame allocations.
-         */
-        private PointF viewportFocus = new PointF();
-        private float lastSpanX;
-        private float lastSpanY;
-
-        @Override
-        public boolean onScaleBegin(ScaleGestureDetector scaleGestureDetector) {
-            lastSpanX = ScaleGestureDetectorCompat.getCurrentSpanX(scaleGestureDetector);
-            lastSpanY = ScaleGestureDetectorCompat.getCurrentSpanY(scaleGestureDetector);
-            return true;
-        }
-
-        @Override
-        public boolean onScale(ScaleGestureDetector scaleGestureDetector) {
-            float spanX = ScaleGestureDetectorCompat.getCurrentSpanX(scaleGestureDetector);
-            float spanY = ScaleGestureDetectorCompat.getCurrentSpanY(scaleGestureDetector);
-
-            float newWidth = lastSpanX / spanX * mCurrentViewport.width();
-            float newHeight = lastSpanY / spanY * mCurrentViewport.height();
-
-            float focusX = scaleGestureDetector.getFocusX();
-            float focusY = scaleGestureDetector.getFocusY();
-            hitTest(focusX, focusY, viewportFocus);
-
-            mCurrentViewport.set(
-                    viewportFocus.x
-                            - newWidth * (focusX - mContentRect.left)
-                            / mContentRect.width(),
-                    viewportFocus.y
-                            - newHeight * (mContentRect.bottom - focusY)
-                            / mContentRect.height(),
-                    0,
-                    0);
-            mCurrentViewport.right = mCurrentViewport.left + newWidth;
-            mCurrentViewport.bottom = mCurrentViewport.top + newHeight;
-            constrainViewport();
-            ViewCompat.postInvalidateOnAnimation(InteractiveLineGraphView.this);
-
-            lastSpanX = spanX;
-            lastSpanY = spanY;
-            return true;
-        }
-    };
 
     /**
      * Ensures that current viewport is inside the viewport extremes defined by {@link #AXIS_X_MIN},
@@ -608,16 +533,6 @@ public class InteractiveLineGraphView extends View {
         }
 
         @Override
-        public boolean onDoubleTap(MotionEvent e) {
-            mZoomer.forceFinished(true);
-            if (hitTest(e.getX(), e.getY(), mZoomFocalPoint)) {
-                mZoomer.startZoom(ZOOM_AMOUNT);
-            }
-            ViewCompat.postInvalidateOnAnimation(InteractiveLineGraphView.this);
-            return true;
-        }
-
-        @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
             // Scrolling uses math based on the viewport (as opposed to math using pixels).
             /**
@@ -630,38 +545,10 @@ public class InteractiveLineGraphView extends View {
             float viewportOffsetX = distanceX * mCurrentViewport.width() / mContentRect.width();
             float viewportOffsetY = -distanceY * mCurrentViewport.height() / mContentRect.height();
             computeScrollSurfaceSize(mSurfaceSizeBuffer);
-            int scrolledX = (int) (mSurfaceSizeBuffer.x
-                    * (mCurrentViewport.left + viewportOffsetX - AXIS_X_MIN)
-                    / (AXIS_X_MAX - AXIS_X_MIN));
-            int scrolledY = (int) (mSurfaceSizeBuffer.y
-                    * (AXIS_Y_MAX - mCurrentViewport.bottom - viewportOffsetY)
-                    / (AXIS_Y_MAX - AXIS_Y_MIN));
-            boolean canScrollX = mCurrentViewport.left > AXIS_X_MIN
-                    || mCurrentViewport.right < AXIS_X_MAX;
-            boolean canScrollY = mCurrentViewport.top > AXIS_Y_MIN
-                    || mCurrentViewport.bottom < AXIS_Y_MAX;
             setViewportBottomLeft(
                     mCurrentViewport.left + viewportOffsetX,
                     mCurrentViewport.bottom + viewportOffsetY);
 
-            if (canScrollX && scrolledX < 0) {
-                mEdgeEffectLeft.onPull(scrolledX / (float) mContentRect.width());
-                mEdgeEffectLeftActive = true;
-            }
-            if (canScrollY && scrolledY < 0) {
-                mEdgeEffectTop.onPull(scrolledY / (float) mContentRect.height());
-                mEdgeEffectTopActive = true;
-            }
-            if (canScrollX && scrolledX > mSurfaceSizeBuffer.x - mContentRect.width()) {
-                mEdgeEffectRight.onPull((scrolledX - mSurfaceSizeBuffer.x + mContentRect.width())
-                        / (float) mContentRect.width());
-                mEdgeEffectRightActive = true;
-            }
-            if (canScrollY && scrolledY > mSurfaceSizeBuffer.y - mContentRect.height()) {
-                mEdgeEffectBottom.onPull((scrolledY - mSurfaceSizeBuffer.y + mContentRect.height())
-                        / (float) mContentRect.height());
-                mEdgeEffectBottomActive = true;
-            }
             return true;
         }
 
@@ -685,7 +572,6 @@ public class InteractiveLineGraphView extends View {
     }
 
     private void fling(int velocityX, int velocityY) {
-        releaseEdgeEffects();
         // Flings use math in pixels (as opposed to math based on the viewport).
         computeScrollSurfaceSize(mSurfaceSizeBuffer);
         mScrollerStartViewport.set(mCurrentViewport);
