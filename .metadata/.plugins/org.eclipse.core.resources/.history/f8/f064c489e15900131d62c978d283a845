@@ -32,6 +32,7 @@ import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.EdgeEffectCompat;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -399,6 +400,7 @@ public class InteractiveLineGraphView extends View {
             labelOffset = mLabelBuffer.length - labelLength;
             float position = mAxisYPositionsBuffer[i] + mLabelHeight / 2;
             float fontSize = calculateFontSize(position-padding, maxScreenPosition, mLabelTextSize);
+            Log.d(TAG, "Font size = " + fontSize);
             mLabelTextPaint.setTextSize(fontSize);
             canvas.drawText(
                     mLabelBuffer, labelOffset, labelLength,

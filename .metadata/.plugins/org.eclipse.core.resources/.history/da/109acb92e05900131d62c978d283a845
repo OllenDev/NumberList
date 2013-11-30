@@ -32,6 +32,7 @@ import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.EdgeEffectCompat;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -390,15 +391,14 @@ public class InteractiveLineGraphView extends View {
         // Draws Y labels
         int labelOffset;
         int labelLength;
-        float padding = getPaddingTop() + getPaddingBottom();
-        float maxScreenPosition = mContentRect.height() - padding;
         mLabelTextPaint.setTextAlign(Paint.Align.CENTER);
         for (i = 0; i < mYStopsBuffer.numStops; i++) {
             // Do not use String.format in high-performance code such as onDraw code.
             labelLength = formatFloat(mLabelBuffer, mYStopsBuffer.stops[i], mYStopsBuffer.decimals);
             labelOffset = mLabelBuffer.length - labelLength;
             float position = mAxisYPositionsBuffer[i] + mLabelHeight / 2;
-            float fontSize = calculateFontSize(position-padding, maxScreenPosition, mLabelTextSize);
+            float fontSize = calculateFontSize(position);
+            Log.d(TAG, "Font size = " + fontSize);
             mLabelTextPaint.setTextSize(fontSize);
             canvas.drawText(
                     mLabelBuffer, labelOffset, labelLength,
@@ -422,11 +422,11 @@ public class InteractiveLineGraphView extends View {
     	// Our y axis represents font size
     	
     	// Setup our constants, except for a which we need to solve for
-    	double h = (double).5*maxScreenPosition;
-    	double k = (double)maxFontSize;
+    	double h = (double).5*mContentRect.height();
+    	double k = (double)mLabelTextSize;
     	
     	// Solve for a using a known point (mCurrentViewPort.height, 0)
-    	double x = (double)maxScreenPosition;
+    	double x = (double)mCurrentViewport.height();
     	double xMinH = x-h;
     	double a = (0-k)/Math.pow(xMinH,2.0);
     	
