@@ -32,7 +32,6 @@ import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.EdgeEffectCompat;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -70,7 +69,7 @@ import android.widget.OverScroller;
  * view's content for vision-impaired users.
  */
 public class InteractiveLineGraphView extends View {
-    private static final String TAG = "InteractiveLineGraphView";
+//    private static final String TAG = "InteractiveLineGraphView";
 
     /**
      * The number of individual points (samples) in the chart series to draw onscreen.
@@ -396,14 +395,10 @@ public class InteractiveLineGraphView extends View {
             // Do not use String.format in high-performance code such as onDraw code.
             labelLength = formatFloat(mLabelBuffer, mYStopsBuffer.stops[i], mYStopsBuffer.decimals);
             labelOffset = mLabelBuffer.length - labelLength;
-            float position = mAxisYPositionsBuffer[i] + mLabelHeight / 2;
-            float fontSize = calculateFontSize(position);
-            Log.d(TAG, "Font size = " + fontSize);
-            mLabelTextPaint.setTextSize(fontSize);
             canvas.drawText(
                     mLabelBuffer, labelOffset, labelLength,
                     mContentRect.width() / 2,
-                    position,
+                    mAxisYPositionsBuffer[i] + mLabelHeight / 2,
                     mLabelTextPaint);
         }
     }
@@ -420,23 +415,16 @@ public class InteractiveLineGraphView extends View {
     	// Our y axis represents font size
     	
     	// Setup our constants, except for a which we need to solve for
-    	double h = (double).5*mContentRect.height();
+    	double h = (double).5*mCurrentViewport.height();
     	double k = (double)mLabelTextSize;
     	
     	// Solve for a using a known point (mCurrentViewPort.height, 0)
     	double x = (double)mCurrentViewport.height();
-    	double xMinH = x-h;
-    	double a = (0-k)/Math.pow(xMinH,2.0);
+    	double a = (0-k)/Math.pow(x-h,2.0);
     	
     	// Now calculate our font size
     	x = (double)position;
     	float fontSize = (float)(a*Math.pow(position-h, 2.0)+k);
-    	
-    	// Make sure we don't return a negative font size
-    	if (fontSize < 0) {
-    		fontSize = 0;
-    	}
-    	
     	return fontSize;
     }
 

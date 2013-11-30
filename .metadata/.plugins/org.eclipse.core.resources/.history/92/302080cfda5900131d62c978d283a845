@@ -420,23 +420,17 @@ public class InteractiveLineGraphView extends View {
     	// Our y axis represents font size
     	
     	// Setup our constants, except for a which we need to solve for
-    	double h = (double).5*mContentRect.height();
+    	double h = (double).5*mCurrentViewport.height();
     	double k = (double)mLabelTextSize;
     	
     	// Solve for a using a known point (mCurrentViewPort.height, 0)
     	double x = (double)mCurrentViewport.height();
-    	double xMinH = x-h;
-    	double a = (0-k)/Math.pow(xMinH,2.0);
+    	doulbe xMinH = x-h;
+    	double a = (0-k)/Math.pow(xMinH),2.0);
     	
     	// Now calculate our font size
     	x = (double)position;
     	float fontSize = (float)(a*Math.pow(position-h, 2.0)+k);
-    	
-    	// Make sure we don't return a negative font size
-    	if (fontSize < 0) {
-    		fontSize = 0;
-    	}
-    	
     	return fontSize;
     }
 

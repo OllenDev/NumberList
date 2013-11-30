@@ -432,11 +432,9 @@ public class InteractiveLineGraphView extends View {
     	x = (double)position;
     	float fontSize = (float)(a*Math.pow(position-h, 2.0)+k);
     	
-    	// Make sure we don't return a negative font size
     	if (fontSize < 0) {
     		fontSize = 0;
     	}
-    	
     	return fontSize;
     }
 
