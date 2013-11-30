@@ -1,3 +1,2 @@
 INDEX VERSION 1.126+/Users/ChrisOllenburg/Development/Android/GestureRecognizer/.metadata/.plugins/org.eclipse.jdt.core
-765453901.index
 1019908608.index

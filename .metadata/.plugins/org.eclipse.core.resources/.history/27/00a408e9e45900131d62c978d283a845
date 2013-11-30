@@ -22,7 +22,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:labelSeparation="10dp"
-    app:labelTextSize="60sp"
+    app:labelTextSize="46sp"
     app:labelTextColor="#d000"
     app:axisThickness="2dp"
     app:axisColor="#d000"

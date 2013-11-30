@@ -92,8 +92,8 @@ public class InteractiveLineGraphView extends View {
     // Viewport extremes. See mCurrentViewport for a discussion of the viewport.
     private static final float AXIS_X_MIN = -1f;
     private static final float AXIS_X_MAX = 1f;
-    private static final float AXIS_Y_MIN = 0f;
-    private static final float AXIS_Y_MAX = 100f;
+    private static final float AXIS_Y_MIN = -1f;
+    private static final float AXIS_Y_MAX = 1f;
 
     /**
      * The current viewport. This rectangle represents the currently visible chart domain
@@ -294,9 +294,7 @@ public class InteractiveLineGraphView extends View {
     }
 
     /**
-     * Draws the numbers
-     * 
-     * @param canvas The drawing canvas.
+     * Draws the chart axes and labels onto the canvas.
      */
     private void drawNumbers(Canvas canvas) {
         // Computes axis stops (in terms of numerical value and position on screen)
@@ -326,7 +324,6 @@ public class InteractiveLineGraphView extends View {
         int labelLength;
         float padding = getPaddingTop() + getPaddingBottom();
         float maxScreenPosition = mContentRect.height() - padding;
-        float centerX = (mContentRect.width()+getPaddingRight()+getPaddingLeft()) / 2;
         mLabelTextPaint.setTextAlign(Paint.Align.CENTER);
         for (i = 0; i < mYStopsBuffer.numStops; i++) {
             // Do not use String.format in high-performance code such as onDraw code.
@@ -337,7 +334,7 @@ public class InteractiveLineGraphView extends View {
             mLabelTextPaint.setTextSize(fontSize);
             canvas.drawText(
                     mLabelBuffer, labelOffset, labelLength,
-                    centerX,
+                    mContentRect.width() / 2,
                     position,
                     mLabelTextPaint);
         }
@@ -456,8 +453,8 @@ public class InteractiveLineGraphView extends View {
             interval = Math.floor(10 * intervalMagnitude);
         }
 
-        double first = Math.ceil(start);
-        double last = Math.nextUp(Math.floor(stop));
+        double first = Math.ceil(start / interval) * interval;
+        double last = Math.nextUp(Math.floor(stop / interval) * interval);
 
         double f;
         int i;
@@ -473,7 +470,7 @@ public class InteractiveLineGraphView extends View {
             outStops.stops = new float[n];
         }
 
-        for (f=first, i=0; i<n; f++, ++i) {
+        for (f = first, i = 0; i < n; f += interval, ++i) {
             outStops.stops[i] = (float) f;
         }
 

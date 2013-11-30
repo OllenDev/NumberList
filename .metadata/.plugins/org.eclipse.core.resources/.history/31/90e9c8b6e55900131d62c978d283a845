@@ -326,7 +326,6 @@ public class InteractiveLineGraphView extends View {
         int labelLength;
         float padding = getPaddingTop() + getPaddingBottom();
         float maxScreenPosition = mContentRect.height() - padding;
-        float centerX = (mContentRect.width()+getPaddingRight()+getPaddingLeft()) / 2;
         mLabelTextPaint.setTextAlign(Paint.Align.CENTER);
         for (i = 0; i < mYStopsBuffer.numStops; i++) {
             // Do not use String.format in high-performance code such as onDraw code.
@@ -337,7 +336,7 @@ public class InteractiveLineGraphView extends View {
             mLabelTextPaint.setTextSize(fontSize);
             canvas.drawText(
                     mLabelBuffer, labelOffset, labelLength,
-                    centerX,
+                    mContentRect.width() / 2,
                     position,
                     mLabelTextPaint);
         }
