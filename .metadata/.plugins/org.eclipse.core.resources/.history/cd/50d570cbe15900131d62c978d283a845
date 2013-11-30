@@ -72,6 +72,11 @@ public class InteractiveLineGraphView extends View {
     private static final String TAG = "InteractiveLineGraphView";
 
     /**
+     * The number of individual points (samples) in the chart series to draw onscreen.
+     */
+    private static final int DRAW_STEPS = 30;
+
+    /**
      * Initial fling velocity for pan operations, in screen widths (or heights) per second.
      *
      * @see #panLeft()
@@ -154,12 +159,16 @@ public class InteractiveLineGraphView extends View {
     private boolean mEdgeEffectRightActive;
 
     // Buffers for storing current X and Y stops. See the computeAxisStops method for more details.
+    private final AxisStops mXStopsBuffer = new AxisStops();
     private final AxisStops mYStopsBuffer = new AxisStops();
 
     // Buffers used during drawing. These are defined as fields to avoid allocation during
     // draw calls.
+    private float[] mAxisXPositionsBuffer = new float[]{};
     private float[] mAxisYPositionsBuffer = new float[]{};
+    private float[] mAxisXLinesBuffer = new float[]{};
     private float[] mAxisYLinesBuffer = new float[]{};
+    private float[] mSeriesLinesBuffer = new float[(DRAW_STEPS + 1) * 4];
     private final char[] mLabelBuffer = new char[100];
     private Point mSurfaceSizeBuffer = new Point();
 
@@ -292,6 +301,19 @@ public class InteractiveLineGraphView extends View {
 
         // Draws axes and text labels
         drawAxes(canvas);
+
+//        // Clips the next few drawing operations to the content area
+//        int clipRestoreCount = canvas.save();
+//        canvas.clipRect(mContentRect);
+//
+//        drawDataSeriesUnclipped(canvas);
+//        drawEdgeEffectsUnclipped(canvas);
+//
+//        // Removes clipping rectangle
+//        canvas.restoreToCount(clipRestoreCount);
+//
+//        // Draws chart container
+//        canvas.drawRect(mContentRect, mAxisPaint);
     }
 
     /**
@@ -300,6 +322,12 @@ public class InteractiveLineGraphView extends View {
     private void drawAxes(Canvas canvas) {
         // Computes axis stops (in terms of numerical value and position on screen)
         int i;
+
+//        computeAxisStops(
+//                mCurrentViewport.left,
+//                mCurrentViewport.right,
+//                mContentRect.width() / mMaxLabelWidth / 2,
+//                mXStopsBuffer);
         computeAxisStops(
                 mCurrentViewport.top,
                 mCurrentViewport.bottom,
@@ -308,17 +336,56 @@ public class InteractiveLineGraphView extends View {
 
         // Avoid unnecessary allocations during drawing. Re-use allocated
         // arrays and only reallocate if the number of stops grows.
+//        if (mAxisXPositionsBuffer.length < mXStopsBuffer.numStops) {
+//            mAxisXPositionsBuffer = new float[mXStopsBuffer.numStops];
+//        }
         if (mAxisYPositionsBuffer.length < mYStopsBuffer.numStops) {
             mAxisYPositionsBuffer = new float[mYStopsBuffer.numStops];
         }
+//        if (mAxisXLinesBuffer.length < mXStopsBuffer.numStops * 4) {
+//            mAxisXLinesBuffer = new float[mXStopsBuffer.numStops * 4];
+//        }
         if (mAxisYLinesBuffer.length < mYStopsBuffer.numStops * 4) {
             mAxisYLinesBuffer = new float[mYStopsBuffer.numStops * 4];
         }
 
-        // Compute positions
+//        // Compute positions
+//        for (i = 0; i < mXStopsBuffer.numStops; i++) {
+//            mAxisXPositionsBuffer[i] = getDrawX(mXStopsBuffer.stops[i]);
+//        }
         for (i = 0; i < mYStopsBuffer.numStops; i++) {
             mAxisYPositionsBuffer[i] = getDrawY(mYStopsBuffer.stops[i]);
         }
+
+//        // Draws grid lines using drawLines (faster than individual drawLine calls)
+//        for (i = 0; i < mXStopsBuffer.numStops; i++) {
+//            mAxisXLinesBuffer[i * 4 + 0] = (float) Math.floor(mAxisXPositionsBuffer[i]);
+//            mAxisXLinesBuffer[i * 4 + 1] = mContentRect.top;
+//            mAxisXLinesBuffer[i * 4 + 2] = (float) Math.floor(mAxisXPositionsBuffer[i]);
+//            mAxisXLinesBuffer[i * 4 + 3] = mContentRect.bottom;
+//        }
+//        canvas.drawLines(mAxisXLinesBuffer, 0, mXStopsBuffer.numStops * 4, mGridPaint);
+//
+//        for (i = 0; i < mYStopsBuffer.numStops; i++) {
+//            mAxisYLinesBuffer[i * 4 + 0] = mContentRect.left;
+//            mAxisYLinesBuffer[i * 4 + 1] = (float) Math.floor(mAxisYPositionsBuffer[i]);
+//            mAxisYLinesBuffer[i * 4 + 2] = mContentRect.right;
+//            mAxisYLinesBuffer[i * 4 + 3] = (float) Math.floor(mAxisYPositionsBuffer[i]);
+//        }
+//        canvas.drawLines(mAxisYLinesBuffer, 0, mYStopsBuffer.numStops * 4, mGridPaint);
+
+        // Draws X labels
+//        mLabelTextPaint.setTextAlign(Paint.Align.CENTER);
+//        for (i = 0; i < mXStopsBuffer.numStops; i++) {
+//            // Do not use String.format in high-performance code such as onDraw code.
+//            labelLength = formatFloat(mLabelBuffer, mXStopsBuffer.stops[i], mXStopsBuffer.decimals);
+//            labelOffset = mLabelBuffer.length - labelLength;
+//            canvas.drawText(
+//                    mLabelBuffer, labelOffset, labelLength,
+//                    mAxisXPositionsBuffer[i],
+//                    mContentRect.bottom + mLabelHeight + mLabelSeparation,
+//                    mLabelTextPaint);
+//        }
 
         // Draws Y labels
         int labelOffset;
@@ -483,12 +550,103 @@ public class InteractiveLineGraphView extends View {
     }
 
     /**
+     * Computes the pixel offset for the given X chart value. This may be outside the view bounds.
+     */
+    private float getDrawX(float x) {
+        return mContentRect.left
+                + mContentRect.width()
+                * (x - mCurrentViewport.left) / mCurrentViewport.width();
+    }
+
+    /**
      * Computes the pixel offset for the given Y chart value. This may be outside the view bounds.
      */
     private float getDrawY(float y) {
         return mContentRect.bottom
                 - mContentRect.height()
                 * (y - mCurrentViewport.top) / mCurrentViewport.height();
+    }
+
+    /**
+     * Draws the currently visible portion of the data series defined by {@link #fun(float)} to the
+     * canvas. This method does not clip its drawing, so users should call {@link Canvas#clipRect
+     * before calling this method.
+     */
+    private void drawDataSeriesUnclipped(Canvas canvas) {
+        mSeriesLinesBuffer[0] = mContentRect.left;
+        mSeriesLinesBuffer[1] = getDrawY(fun(mCurrentViewport.left));
+        mSeriesLinesBuffer[2] = mSeriesLinesBuffer[0];
+        mSeriesLinesBuffer[3] = mSeriesLinesBuffer[1];
+        float x;
+        for (int i = 1; i <= DRAW_STEPS; i++) {
+            mSeriesLinesBuffer[i * 4 + 0] = mSeriesLinesBuffer[(i - 1) * 4 + 2];
+            mSeriesLinesBuffer[i * 4 + 1] = mSeriesLinesBuffer[(i - 1) * 4 + 3];
+
+            x = (mCurrentViewport.left + (mCurrentViewport.width() / DRAW_STEPS * i));
+            mSeriesLinesBuffer[i * 4 + 2] = getDrawX(x);
+            mSeriesLinesBuffer[i * 4 + 3] = getDrawY(fun(x));
+        }
+        canvas.drawLines(mSeriesLinesBuffer, mDataPaint);
+    }
+
+    /**
+     * Draws the overscroll "glow" at the four edges of the chart region, if necessary. The edges
+     * of the chart region are stored in {@link #mContentRect}.
+     *
+     * @see EdgeEffectCompat
+     */
+    private void drawEdgeEffectsUnclipped(Canvas canvas) {
+        // The methods below rotate and translate the canvas as needed before drawing the glow,
+        // since EdgeEffectCompat always draws a top-glow at 0,0.
+
+        boolean needsInvalidate = false;
+
+        if (!mEdgeEffectTop.isFinished()) {
+            final int restoreCount = canvas.save();
+            canvas.translate(mContentRect.left, mContentRect.top);
+            mEdgeEffectTop.setSize(mContentRect.width(), mContentRect.height());
+            if (mEdgeEffectTop.draw(canvas)) {
+                needsInvalidate = true;
+            }
+            canvas.restoreToCount(restoreCount);
+        }
+
+        if (!mEdgeEffectBottom.isFinished()) {
+            final int restoreCount = canvas.save();
+            canvas.translate(2 * mContentRect.left - mContentRect.right, mContentRect.bottom);
+            canvas.rotate(180, mContentRect.width(), 0);
+            mEdgeEffectBottom.setSize(mContentRect.width(), mContentRect.height());
+            if (mEdgeEffectBottom.draw(canvas)) {
+                needsInvalidate = true;
+            }
+            canvas.restoreToCount(restoreCount);
+        }
+
+        if (!mEdgeEffectLeft.isFinished()) {
+            final int restoreCount = canvas.save();
+            canvas.translate(mContentRect.left, mContentRect.bottom);
+            canvas.rotate(-90, 0, 0);
+            mEdgeEffectLeft.setSize(mContentRect.height(), mContentRect.width());
+            if (mEdgeEffectLeft.draw(canvas)) {
+                needsInvalidate = true;
+            }
+            canvas.restoreToCount(restoreCount);
+        }
+
+        if (!mEdgeEffectRight.isFinished()) {
+            final int restoreCount = canvas.save();
+            canvas.translate(mContentRect.right, mContentRect.top);
+            canvas.rotate(90, 0, 0);
+            mEdgeEffectRight.setSize(mContentRect.height(), mContentRect.width());
+            if (mEdgeEffectRight.draw(canvas)) {
+                needsInvalidate = true;
+            }
+            canvas.restoreToCount(restoreCount);
+        }
+
+        if (needsInvalidate) {
+            ViewCompat.postInvalidateOnAnimation(this);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

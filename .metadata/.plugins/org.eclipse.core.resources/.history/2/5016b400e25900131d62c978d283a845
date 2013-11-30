@@ -72,6 +72,11 @@ public class InteractiveLineGraphView extends View {
     private static final String TAG = "InteractiveLineGraphView";
 
     /**
+     * The number of individual points (samples) in the chart series to draw onscreen.
+     */
+    private static final int DRAW_STEPS = 30;
+
+    /**
      * Initial fling velocity for pan operations, in screen widths (or heights) per second.
      *
      * @see #panLeft()
