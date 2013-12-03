@@ -594,6 +594,14 @@ public class InteractiveLineGraphView extends View {
             computeScrollSurfaceSize(mSurfaceSizeBuffer);
             int currX = mScroller.getCurrX();
             int currY = mScroller.getCurrY();
+            
+            int finalY = mScroller.getFinalY();
+            int delta = finalY - currY;
+            // Compute where to stop the scroll
+            if (delta < 10) {
+            	// TODO Fix This
+            	float pixelHeight = mAxisYPositionsBuffer[0] - mAxisYPositionsBuffer[1] + (float)mLabelHeight; 
+            }
 
             boolean canScrollX = (mCurrentViewport.left > AXIS_X_MIN
                     || mCurrentViewport.right < AXIS_X_MAX);

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="LifeCounterView">
+        <attr name="solidColor" format="color" />
+        <attr name="selectionDivider" format="integer" />
+        <attr name="selectionDividerHeight" format="dimension" />
+        <attr name="selectionDividersDistance" format="integer" />
+        <attr name="selectionDividersDistance" format="integer" />
+    </declare-styleable>
+
+</resources>
